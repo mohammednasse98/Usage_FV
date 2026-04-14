@@ -1,553 +1,790 @@
 <!DOCTYPE html>
-
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>متجر العطّار</title>
-<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نظام توزيع الخبز</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
 <style>
-* {
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
-  -webkit-tap-highlight-color:transparent;
-  transition: all 0.2s ease;
-}
+  :root {
+    --bg: #0d0f14;
+    --surface: #161a23;
+    --card: #1e2330;
+    --border: #2a3045;
+    --gold: #f5c842;
+    --gold2: #e8a820;
+    --red: #e05555;
+    --green: #4cbb8a;
+    --blue: #4a90d9;
+    --text: #e8eaf0;
+    --muted: #7a8099;
+    --radius: 14px;
+  }
 
-/* 🎨 COLORS */
-:root {
---bg: #0F1115;
---surface: #181C23;
---surface2: #1F2430;
---border: #2A2F3A;
+  * { margin: 0; padding: 0; box-sizing: border-box; }
 
---text: #F5F7FA;
---sub: #9AA3B2;
+  body {
+    font-family: 'Cairo', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 20% -10%, rgba(245,200,66,0.07) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 110%, rgba(74,144,217,0.06) 0%, transparent 60%);
+  }
 
---accent: #D4AF37;
---accent2: #F0D67A;
+  /* ===== LOGIN ===== */
+  #loginScreen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
 
---green: #22C55E;
---green-dim: #123D2A;
+  .login-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 40px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
 
---red: #EF4444;
---red-dim: #3F1D1D;
+  .login-logo {
+    text-align: center;
+    margin-bottom: 32px;
+  }
 
---warn: #F59E0B;
---warn-dim: #3D2A12;
+  .login-logo .icon {
+    font-size: 52px;
+    display: block;
+    margin-bottom: 8px;
+    filter: drop-shadow(0 0 20px rgba(245,200,66,0.4));
+  }
 
---shadow: rgba(0,0,0,0.5);
-}
+  .login-logo h1 {
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--gold);
+    letter-spacing: 1px;
+  }
 
-/* BASE */
-html, body {
-  height:100%;
-  font-family: 'Cairo', sans-serif;
-  background: var(--bg);
-  color: var(--text);
-}
+  .login-logo p {
+    color: var(--muted);
+    font-size: 13px;
+    margin-top: 4px;
+  }
 
-/* HEADER */
-header {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  padding: 14px 20px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  position:sticky;
-  top:0;
-  z-index:100;
-}
+  .role-tabs {
+    display: flex;
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 24px;
+    gap: 4px;
+  }
 
-.logo-icon {
-  width:42px;
-  height:42px;
-  background: linear-gradient(135deg,#5C3D10,var(--accent));
-  border-radius:12px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
+  .role-tab {
+    flex: 1;
+    padding: 10px;
+    text-align: center;
+    border-radius: 7px;
+    cursor: pointer;
+    font-family: 'Cairo', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    transition: all 0.2s;
+  }
 
-.logo h1 {
-  font-family:'Amiri', serif;
-  font-size:20px;
-}
+  .role-tab.active {
+    background: var(--gold);
+    color: #0d0f14;
+  }
 
-/* CARD */
-.card {
-  background: rgba(24, 28, 35, 0.85);
-  backdrop-filter: blur(10px);
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  padding: 20px;
-  margin-bottom: 14px;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.25);
-}
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: 6px;
+    margin-top: 16px;
+  }
 
-/* INPUT */
-.field input {
-  width:100%;
-  background: var(--surface2);
-  border:1px solid var(--border);
-  border-radius:12px;
-  padding:12px;
-  color:var(--text);
-}
+  input {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'Cairo', sans-serif;
+    font-size: 14px;
+    transition: border-color 0.2s;
+    text-align: right;
+  }
 
-.field input:focus {
-  border-color: var(--accent);
-  box-shadow:0 0 0 2px rgba(212,175,55,0.2);
-}
+  input:focus { outline: none; border-color: var(--gold); }
 
-/* BUTTON */
-.btn {
-  border:none;
-  border-radius:14px;
-  cursor:pointer;
-}
+  .btn {
+    width: 100%;
+    padding: 13px;
+    border-radius: 10px;
+    border: none;
+    font-family: 'Cairo', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
 
-.btn-accent {
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  color:#1a1200;
-  padding:14px;
-  font-weight:bold;
-  box-shadow: 0 6px 20px rgba(212,175,55,0.35);
-}
+  .btn-gold { background: var(--gold); color: #0d0f14; }
+  .btn-gold:hover { background: var(--gold2); transform: translateY(-1px); }
 
-.btn-accent:hover {
-  transform: translateY(-2px);
-}
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
 
-.btn-green {
-  background: var(--green);
-  color:#052e1a;
-}
+  .btn-outline:hover { border-color: var(--gold); color: var(--gold); }
 
-.btn-red {
-  background: var(--red-dim);
-  color: var(--red);
-}
+  .btn-danger { background: var(--red); color: white; }
+  .btn-danger:hover { opacity: 0.85; }
 
-/* SALE CARDS */
-.sale-card {
-  background: linear-gradient(145deg, #1c212b, #161a22);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 16px;
-  text-align:center;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-}
+  .btn-sm {
+    width: auto;
+    padding: 7px 14px;
+    font-size: 13px;
+    margin-top: 0;
+    border-radius: 8px;
+  }
 
-.sale-card:hover {
-  transform: translateY(-5px) scale(1.02);
-  border-color: var(--accent);
-}
+  .error-msg {
+    background: rgba(224,85,85,0.12);
+    border: 1px solid rgba(224,85,85,0.3);
+    color: var(--red);
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-top: 12px;
+    display: none;
+  }
 
-/* INVENTORY ITEM */
-.inv-item {
-  background: var(--surface);
-  border:1px solid var(--border);
-  border-radius:14px;
-  padding:14px;
-  margin-bottom:10px;
-}
+  /* ===== APP ===== */
+  #appScreen { display: none; min-height: 100vh; }
 
-.inv-item:hover {
-  border-color: var(--accent);
-}
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
 
-/* CART */
-.cart-item {
-  display:flex;
-  justify-content:space-between;
-  padding:10px 0;
-  border-bottom:1px solid var(--border);
-}
+  .topbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 900;
+    font-size: 16px;
+    color: var(--gold);
+  }
 
-/* TOTAL */
-.total-bar {
-  background: linear-gradient(135deg, #1F2430, #181C23);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 16px;
-  display:flex;
-  justify-content:space-between;
-}
+  .topbar-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
 
-.total-bar .tv {
-  font-size: 24px;
-  font-weight:900;
-  color: var(--accent);
-}
+  .role-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+  }
 
-/* BADGES */
-.badge-ok { color: var(--green); }
-.badge-low { color: var(--warn); }
-.badge-out { color: var(--red); }
+  .badge-admin { background: rgba(245,200,66,0.15); color: var(--gold); border: 1px solid rgba(245,200,66,0.3); }
+  .badge-user { background: rgba(74,144,217,0.15); color: var(--blue); border: 1px solid rgba(74,144,217,0.3); }
 
-/* NAV */
-.bottom-nav {
-  position:fixed;
-  bottom:0;
-  width:100%;
-  display:flex;
-  background: var(--surface);
-  border-top:1px solid var(--border);
-}
+  .main { padding: 24px; max-width: 960px; margin: 0 auto; }
 
-.nav-btn {
-  flex:1;
-  padding:10px;
-  color:var(--sub);
-}
+  /* ===== STATS ===== */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 28px;
+  }
 
-.nav-btn.active {
-  color: var(--accent);
-}
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
 
-/* TOAST */
-.toast {
-  position:fixed;
-  bottom:80px;
-  left:50%;
-  transform:translateX(-50%);
-  background: var(--surface2);
-  padding:10px 20px;
-  border-radius:30px;
-  opacity:0;
-}
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    opacity: 0.08;
+    transform: translate(20px, -20px);
+  }
 
-.toast.show {
-  opacity:1;
-}
+  .stat-card.gold::before { background: var(--gold); }
+  .stat-card.green::before { background: var(--green); }
+  .stat-card.blue::before { background: var(--blue); }
 
-/* MOBILE TAP EFFECT */
-.btn:active,
-.sale-card:active {
-  transform: scale(0.95);
-}</style>
+  .stat-label { font-size: 12px; color: var(--muted); font-weight: 600; margin-bottom: 8px; }
+  .stat-value { font-size: 28px; font-weight: 900; }
+  .stat-card.gold .stat-value { color: var(--gold); }
+  .stat-card.green .stat-value { color: var(--green); }
+  .stat-card.blue .stat-value { color: var(--blue); }
 
+  /* ===== SEARCH ===== */
+  .search-bar {
+    position: relative;
+    margin-bottom: 20px;
+  }
+
+  .search-bar input {
+    padding-right: 44px;
+    font-size: 15px;
+  }
+
+  .search-icon {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 18px;
+    pointer-events: none;
+  }
+
+  /* ===== ADD FORM (admin) ===== */
+  .add-form {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+
+  .add-form h3 {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    color: var(--gold);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 12px;
+    align-items: end;
+  }
+
+  .form-row label { margin-top: 0; }
+
+  .form-row .btn { margin-top: 0; width: auto; padding: 12px 20px; }
+
+  /* ===== TABLE ===== */
+  .table-wrap {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .table-header {
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .table-header h3 {
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  th {
+    padding: 12px 20px;
+    text-align: right;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
+    background: rgba(255,255,255,0.02);
+    border-bottom: 1px solid var(--border);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  td {
+    padding: 14px 20px;
+    font-size: 14px;
+    border-bottom: 1px solid rgba(42,48,69,0.6);
+    vertical-align: middle;
+  }
+
+  tr:last-child td { border-bottom: none; }
+
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .name-cell { font-weight: 700; font-size: 15px; }
+
+  .num-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 13px;
+  }
+
+  .num-people { background: rgba(74,144,217,0.12); color: var(--blue); }
+  .num-bread { background: rgba(245,200,66,0.12); color: var(--gold); }
+  .num-money { background: rgba(76,187,138,0.12); color: var(--green); }
+
+  .actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+  /* ===== EDIT MODAL ===== */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 28px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+  }
+
+  .modal h3 {
+    font-size: 17px;
+    font-weight: 800;
+    margin-bottom: 20px;
+    color: var(--gold);
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+  }
+
+  .modal-actions .btn { flex: 1; margin-top: 0; }
+
+  /* ===== EMPTY ===== */
+  .empty {
+    text-align: center;
+    padding: 50px 20px;
+    color: var(--muted);
+  }
+
+  .empty .empty-icon { font-size: 48px; margin-bottom: 12px; }
+  .empty p { font-size: 14px; }
+
+  /* ===== LOADING ===== */
+  .loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  @media (max-width: 600px) {
+    .form-row { grid-template-columns: 1fr 1fr; }
+    .form-row .btn { grid-column: 1 / -1; }
+    .topbar { padding: 0 16px; }
+    .main { padding: 16px; }
+    th:nth-child(3), td:nth-child(3) { display: none; }
+  }
+</style>
 </head>
 <body>
 
-<header>
-  <div class="logo">
-    <div class="logo-icon">🌿</div>
-    <div>
-      <h1>متجر العطّار</h1>
-      <p>إدارة المخزون والمبيعات</p>
+<!-- LOGIN SCREEN -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">
+      <span class="icon">🍞</span>
+      <h1>نظام توزيع الخبز</h1>
+      <p>سجّل دخولك للمتابعة</p>
     </div>
-  </div>
-  <div class="hdr-stats">
-    <div class="hdr-stat"><span class="n" id="hdr-p">0</span><span class="l">صنف</span></div>
-    <div class="hdr-stat"><span class="n" id="hdr-s">0</span><span class="l">فاتورة</span></div>
-    <div class="hdr-stat"><span class="n" id="hdr-r">0</span><span class="l">إجمالي ج</span></div>
-  </div>
-</header>
 
-<div class="dtabs">
-  <button class="dtab active" onclick="sw('inventory',this)">📦 المخزون</button>
-  <button class="dtab" onclick="sw('sale',this)">🛒 البيع</button>
-  <button class="dtab" onclick="sw('history',this)">📋 السجل</button>
-</div>
-
-<main>
-
-  <!-- INVENTORY -->
-
-  <div class="panel active" id="panel-inventory">
-    <div class="sl">إضافة صنف جديد</div>
-    <div class="card">
-      <div class="form-col drow">
-        <div class="field">
-          <label>اسم الصنف</label>
-          <input type="text" id="new-name" placeholder="مثال: كمون، شمر، حبة بركة" />
-        </div>
-        <div class="two-col">
-          <div class="field">
-            <label>الكمية (كجم)</label>
-            <input type="number" id="new-qty" placeholder="10" min="0.25" step="0.25" />
-          </div>
-          <div class="field">
-            <label>سعر الكيلو (ج)</label>
-            <input type="number" id="new-price" placeholder="50" min="0" step="0.5" />
-          </div>
-        </div>
-        <button class="btn btn-accent" onclick="addProduct()">➕ إضافة</button>
-      </div>
+    <div class="role-tabs">
+      <button class="role-tab active" onclick="setRole('admin')">👑 أدمن</button>
+      <button class="role-tab" onclick="setRole('user')">👤 مستخدم</button>
     </div>
-    <div class="sl">الأصناف المتاحة</div>
-    <div class="sw"><input type="text" id="inv-search" placeholder="ابحث عن صنف..." oninput="renderInventory()" /></div>
-    <div id="inv-list"></div>
-  </div>
 
-  <!-- SALE -->
+    <label>البريد الإلكتروني</label>
+    <input type="email" id="loginEmail" placeholder="example@mail.com" dir="ltr">
 
-  <div class="panel" id="panel-sale">
-    <div class="sale-layout">
-      <div>
-        <div class="sl">اختر صنف</div>
-        <div class="sw"><input type="text" id="sale-search" placeholder="بحث..." oninput="renderSaleGrid()" /></div>
-        <div class="sale-grid" id="sale-grid"></div>
-      </div>
-      <div class="cart-sticky">
-        <div class="sl" style="display:flex;justify-content:space-between;align-items:center">
-          <span>الفاتورة</span>
-          <button class="btn btn-red" style="font-size:11px;padding:5px 10px" onclick="clearCart()">مسح</button>
-        </div>
-        <div class="card" style="padding:16px">
-          <div id="cart-body"><div class="cart-empty">🛒<br>السلة فارغة<br>اختر صنف من القائمة</div></div>
-          <div class="total-bar" id="total-bar" style="display:none">
-            <span class="tl">الإجمالي</span>
-            <span class="tv" id="cart-grand">0 ج</span>
-          </div>
-          <button class="btn btn-green" id="complete-btn" onclick="completeSale()" disabled>✅ إتمام البيع</button>
-        </div>
-      </div>
+    <label>كلمة المرور</label>
+    <input type="password" id="loginPassword" placeholder="••••••••" dir="ltr">
+
+    <div class="error-msg" id="loginError"></div>
+
+    <button class="btn btn-gold" onclick="doLogin()">🔐 دخول</button>
+
+    <div id="registerSection" style="display:none; margin-top:16px; border-top:1px solid var(--border); padding-top:16px;">
+      <p style="font-size:12px; color:var(--muted); text-align:center; margin-bottom:12px;">مش عندك حساب مستخدم؟</p>
+      <button class="btn btn-outline" onclick="doRegister()">✨ إنشاء حساب مستخدم جديد</button>
     </div>
-  </div>
-
-  <!-- HISTORY -->
-
-  <div class="panel" id="panel-history">
-    <div class="sl" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-      <span>سجل المبيعات</span>
-      <button class="btn btn-red" style="font-size:11px;padding:5px 10px" onclick="clearHistory()">🗑 مسح</button>
-    </div>
-    <div id="history-list"></div>
-  </div>
-
-</main>
-
-<nav class="bottom-nav">
-  <button class="nav-btn active" onclick="sw('inventory',this)"><span class="ni">📦</span>المخزون</button>
-  <button class="nav-btn" onclick="sw('sale',this)"><span class="ni">🛒</span>بيع</button>
-  <button class="nav-btn" onclick="sw('history',this)"><span class="ni">📋</span>السجل</button>
-</nav>
-
-<!-- UNIT SHEET -->
-
-<div class="overlay" id="overlay">
-  <div class="sheet">
-    <div class="sh-handle"></div>
-    <h3 id="sh-title">اختر الكمية</h3>
-    <p class="sheet-sub" id="sh-sub"></p>
-    <div class="unit-grid" id="unit-grid"></div>
-    <button class="btn btn-accent" onclick="addToCart()">➕ إضافة للفاتورة</button>
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
+<!-- APP SCREEN -->
+<div id="appScreen">
+  <div class="topbar">
+    <div class="topbar-brand">
+      <span>🍞</span>
+      نظام الخبز
+    </div>
+    <div class="topbar-user">
+      <span id="userEmailDisplay" style="font-size:13px; color:var(--muted);"></span>
+      <span id="roleBadge" class="role-badge badge-user"></span>
+      <button class="btn btn-outline btn-sm" onclick="doLogout()">خروج</button>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- STATS -->
+    <div class="stats-grid">
+      <div class="stat-card blue">
+        <div class="stat-label">📋 إجمالي الإدخالات</div>
+        <div class="stat-value" id="statTotal">0</div>
+      </div>
+      <div class="stat-card gold">
+        <div class="stat-label">🧑‍🤝‍🧑 إجمالي الأشخاص</div>
+        <div class="stat-value" id="statPeople">0</div>
+      </div>
+      <div class="stat-card gold">
+        <div class="stat-label">🍞 أرغفة يومية</div>
+        <div class="stat-value" id="statBread">0</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">💰 إجمالي الجنيهات</div>
+        <div class="stat-value" id="statMoney">0</div>
+      </div>
+    </div>
+
+    <!-- ADD FORM (admin only) -->
+    <div class="add-form" id="addFormSection" style="display:none;">
+      <h3>➕ إضافة إدخال جديد</h3>
+      <div class="form-row">
+        <div>
+          <label>الاسم</label>
+          <input type="text" id="newName" placeholder="اسم الشخص أو المجموعة">
+        </div>
+        <div>
+          <label>عدد الأشخاص</label>
+          <input type="number" id="newPeople" placeholder="مثال: 4" min="1">
+        </div>
+        <button class="btn btn-gold" onclick="addEntry()">إضافة ✓</button>
+      </div>
+      <div class="error-msg" id="addError"></div>
+    </div>
+
+    <!-- SEARCH -->
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="ابحث بالاسم..." oninput="renderTable()">
+    </div>
+
+    <!-- TABLE -->
+    <div class="table-wrap">
+      <div class="table-header">
+        <h3>📊 بيانات التوزيع</h3>
+        <span style="font-size:12px; color:var(--muted);" id="recordCount"></span>
+      </div>
+      <div id="tableContainer">
+        <div class="loading">⏳ جارٍ تحميل البيانات...</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <h3>✏️ تعديل الإدخال</h3>
+    <input type="hidden" id="editKey">
+    <label>الاسم</label>
+    <input type="text" id="editName">
+    <label>عدد الأشخاص</label>
+    <input type="number" id="editPeople" min="1">
+    <div class="error-msg" id="editError"></div>
+    <div class="modal-actions">
+      <button class="btn btn-gold" onclick="saveEdit()">حفظ</button>
+      <button class="btn btn-outline" onclick="closeModal()">إلغاء</button>
+    </div>
+  </div>
+</div>
 
 <script>
-let products = [], cart = [], salesHistory = [];
-let cPid = null, selUnit = null;
+// ===== FIREBASE INIT =====
+const firebaseConfig = {
+  apiKey: "AIzaSyAxgOiXWzzQx5VlkEZklrLDpsu6Pf4jgpU",
+  authDomain: "education-e65d7.firebaseapp.com",
+  databaseURL: "https://education-e65d7-default-rtdb.firebaseio.com",
+  projectId: "education-e65d7",
+  storageBucket: "education-e65d7.firebasestorage.app",
+  messagingSenderId: "1071767617322",
+  appId: "1:1071767617322:web:2dcb4576ba55d31d0ba853",
+  measurementId: "G-KBF76EG2K7"
+};
 
-function save() {
-  localStorage.setItem('attar_p', JSON.stringify(products));
-  localStorage.setItem('attar_h', JSON.stringify(salesHistory));
-}
-function load() {
-  try { products     = JSON.parse(localStorage.getItem('attar_p')) || []; } catch(e){ products=[]; }
-  try { salesHistory = JSON.parse(localStorage.getItem('attar_h')) || []; } catch(e){ salesHistory=[]; }
-}
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
 
-function sw(tab, btn) {
-  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.nav-btn,.dtab').forEach(b=>b.classList.remove('active'));
-  document.getElementById('panel-'+tab).classList.add('active');
-  document.querySelectorAll('.nav-btn,.dtab').forEach(b=>{ if(b.getAttribute('onclick')?.includes("'"+tab+"'")) b.classList.add('active'); });
-  if(tab==='sale') renderSaleGrid();
-  if(tab==='history') renderHistory();
-}
+// ADMIN EMAIL - غير الإيميل ده لإيميل الأدمن بتاعك
+const ADMIN_EMAIL = "admin@bread.com";
 
-function toast(msg) {
-  const t=document.getElementById('toast');
-  t.textContent=msg; t.classList.add('show');
-  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2500);
-}
+let currentRole = 'admin';
+let allData = {};
 
-const HERBS=['🌿','🌱','🍃','🫚','🧄','🌾','🫘','🍂','🌰','🫛'];
-function herb(n){ let h=0; for(let c of n) h=(h*31+c.charCodeAt(0))&0xFFFF; return HERBS[h%HERBS.length]; }
-
-function addProduct() {
-  const name=document.getElementById('new-name').value.trim();
-  const qty=parseFloat(document.getElementById('new-qty').value);
-  const price=parseFloat(document.getElementById('new-price').value);
-  if(!name) return toast('⚠️ أدخل اسم الصنف');
-  if(!qty||qty<=0) return toast('⚠️ أدخل الكمية');
-  if(!price||price<=0) return toast('⚠️ أدخل السعر');
-  products.push({id:Date.now(),name,qty:Math.round(qty*4)/4,price});
-  save(); renderInventory(); updateHeader();
-  document.getElementById('new-name').value='';
-  document.getElementById('new-qty').value='';
-  document.getElementById('new-price').value='';
-  toast('✅ تم إضافة '+name);
+// ===== ROLE TABS =====
+function setRole(role) {
+  currentRole = role;
+  document.querySelectorAll('.role-tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('registerSection').style.display = role === 'user' ? 'block' : 'none';
 }
 
-function delProd(id) {
-  if(!confirm('حذف هذا الصنف؟')) return;
-  products=products.filter(p=>p.id!==id);
-  save(); renderInventory(); updateHeader(); toast('🗑 تم الحذف');
+// ===== AUTH =====
+function showError(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 4000);
 }
 
-function badgeHtml(qty) {
-  if(qty<=0) return `<span class="badge badge-out">نفد</span>`;
-  if(qty<1)  return `<span class="badge badge-low">منخفض</span>`;
-  return             `<span class="badge badge-ok">متوفر</span>`;
-}
-
-function renderInventory() {
-  const q=document.getElementById('inv-search').value.toLowerCase();
-  const el=document.getElementById('inv-list');
-  const f=products.filter(p=>p.name.includes(q)||p.name.toLowerCase().includes(q));
-  if(!f.length){ el.innerHTML=`<div class="empty-state"><div class="ei">📦</div><p>${q?'لا نتائج':'لا توجد أصناف بعد'}</p></div>`; return; }
-  el.innerHTML=f.map(p=>`
-    <div class="inv-item">
-      <div class="inv-emoji">${herb(p.name)}</div>
-      <div class="inv-info">
-        <div class="inv-name">${p.name}</div>
-        <div class="inv-meta">
-          <span class="chip">📦 ${p.qty} كجم</span>
-          <span class="chip a">🏷️ ${p.price} ج/كجم</span>
-          <span class="chip g">¼ = ${(p.price/4).toFixed(1)} ج</span>
-          <span class="chip g">½ = ${(p.price/2).toFixed(1)} ج</span>
-        </div>
-      </div>
-      <div class="inv-right">
-        ${badgeHtml(p.qty)}
-        <button class="btn btn-red" onclick="delProd(${p.id})" style="font-size:11px;padding:5px 10px">🗑</button>
-      </div>
-    </div>`).join('');
-}
-
-function renderSaleGrid() {
-  const q=document.getElementById('sale-search').value.toLowerCase();
-  const g=document.getElementById('sale-grid');
-  const f=products.filter(p=>p.name.includes(q)||p.name.toLowerCase().includes(q));
-  if(!f.length){ g.innerHTML=`<div style="grid-column:span 2;text-align:center;padding:30px;color:var(--sub)">لا توجد أصناف</div>`; return; }
-  g.innerHTML=f.map(p=>{
-    const out=p.qty<=0;
-    return `<div class="sale-card ${out?'out':''}" onclick="${out?'':` openSheet(${p.id})`}">
-      <div class="sc-icon">${herb(p.name)}</div>
-      <div class="sc-name">${p.name}</div>
-      <div class="sc-stock">${p.qty} كجم</div>
-      <div class="sc-price">${p.price} ج/كجم</div>
-    </div>`;
-  }).join('');
-}
-
-function openSheet(id) {
-  const p=products.find(x=>x.id===id); if(!p) return;
-  cPid=id; selUnit=null;
-  document.getElementById('sh-title').textContent=p.name;
-  document.getElementById('sh-sub').textContent=`المتاح: ${p.qty} كجم · سعر الكيلو: ${p.price} ج`;
-  const units=[{l:'¼ كجم',k:.25},{l:'½ كجم',k:.5},{l:'¾ كجم',k:.75},{l:'1 كجم',k:1}];
-  document.getElementById('unit-grid').innerHTML=units.map((u,i)=>{
-    const av=p.qty>=u.k;
-    return `<div>
-      <input type="radio" class="unit-radio" name="usel" id="u${i}" value="${u.k}" ${!av?'disabled':''} onchange="selUnit=${u.k}">
-      <label for="u${i}" class="unit-tile ${!av?'dis':''}">
-        <span class="utk">${u.l}</span>
-        <span class="utp">${(p.price*u.k).toFixed(2)} ج</span>
-        ${!av?'<span style="font-size:10px;color:var(--red);display:block;margin-top:3px">غير متاح</span>':''}
-      </label>
-    </div>`;
-  }).join('');
-  document.getElementById('overlay').classList.add('open');
-}
-
-document.getElementById('overlay').addEventListener('click',e=>{ if(e.target===document.getElementById('overlay')) closeSheet(); });
-function closeSheet(){ document.getElementById('overlay').classList.remove('open'); cPid=null; selUnit=null; }
-
-function addToCart() {
-  if(!selUnit) return toast('⚠️ اختر الكمية أولاً');
-  const p=products.find(x=>x.id===cPid); if(!p) return;
-  const ex=cart.find(c=>c.id===p.id&&c.unit===selUnit);
-  if(ex){ if(ex.qty*selUnit+selUnit>p.qty) return toast('⚠️ مخزون غير كافٍ'); ex.qty++; }
-  else   cart.push({id:p.id,name:p.name,unit:selUnit,qty:1,ppk:p.price});
-  renderCart(); closeSheet();
-  const kl=selUnit===.25?'¼':selUnit===.5?'½':selUnit===.75?'¾':'1';
-  toast(`✅ ${p.name} (${kl} كجم)`);
-}
-
-function renderCart() {
-  const body=document.getElementById('cart-body');
-  const bar=document.getElementById('total-bar');
-  const btn=document.getElementById('complete-btn');
-  if(!cart.length){ body.innerHTML=`<div class="cart-empty">🛒<br>السلة فارغة<br>اختر صنف من القائمة</div>`; bar.style.display='none'; btn.disabled=true; return; }
-  let grand=0;
-  body.innerHTML=cart.map((item,i)=>{
-    const lt=item.qty*item.unit*item.ppk; grand+=lt;
-    const kl=item.unit===.25?'¼':item.unit===.5?'½':item.unit===.75?'¾':'1';
-    return `<div class="cart-item">
-      <div class="cart-name">${item.name}<br><span class="cart-sub">${kl} كجم × ${item.qty}</span></div>
-      <div class="qc">
-        <button onclick="chQty(${i},-1)">−</button>
-        <span>${item.qty}</span>
-        <button onclick="chQty(${i},1)">+</button>
-      </div>
-      <div class="cart-price">${lt.toFixed(1)}ج</div>
-      <button class="rm-btn" onclick="rmCart(${i})">✕</button>
-    </div>`;
-  }).join('');
-  document.getElementById('cart-grand').textContent=grand.toFixed(2)+' ج';
-  bar.style.display='flex'; btn.disabled=false;
-}
-
-function chQty(i,d) {
-  const item=cart[i]; const p=products.find(x=>x.id===item.id); if(!p) return;
-  const nq=item.qty+d;
-  if(nq<=0) cart.splice(i,1);
-  else if(nq*item.unit>p.qty){ toast('⚠️ مخزون غير كافٍ'); return; }
-  else item.qty=nq;
-  renderCart();
-}
-function rmCart(i){ cart.splice(i,1); renderCart(); }
-function clearCart(){ if(!cart.length||!confirm('مسح الفاتورة؟')) return; cart=[]; renderCart(); }
-
-function completeSale() {
-  if(!cart.length) return;
-  for(const item of cart){ const p=products.find(x=>x.id===item.id); if(!p||p.qty<item.qty*item.unit) return toast(`⚠️ مخزون "${item.name}" غير كافٍ`); }
-  let total=0; const si=[];
-  for(const item of cart){
-    const p=products.find(x=>x.id===item.id);
-    p.qty=Math.round((p.qty-item.qty*item.unit)*4)/4;
-    const lt=item.qty*item.unit*item.ppk; total+=lt;
-    const kl=item.unit===.25?'¼':item.unit===.5?'½':item.unit===.75?'¾':'1';
-    si.push(`${item.name} (${item.qty}×${kl}) — ${lt.toFixed(2)} ج`);
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPassword').value;
+  if (!email || !pass) return showError('loginError', '⚠️ اكتب الإيميل وكلمة المرور');
+  try {
+    await auth.signInWithEmailAndPassword(email, pass);
+  } catch (e) {
+    showError('loginError', '❌ ' + translateError(e.code));
   }
-  salesHistory.unshift({id:Date.now(),date:new Date().toLocaleString('ar-EG'),items:si,total:total.toFixed(2)});
-  save(); cart=[]; renderCart(); renderSaleGrid(); updateHeader();
-  toast(`✅ تم البيع! الإجمالي: ${total.toFixed(2)} ج`);
 }
 
-function renderHistory() {
-  const c=document.getElementById('history-list');
-  if(!salesHistory.length){ c.innerHTML=`<div class="empty-state"><div class="ei">📋</div><p>لا توجد مبيعات بعد</p></div>`; return; }
-  c.innerHTML=salesHistory.map(s=>`
-    <div class="hist-card">
-      <div class="hist-top">
-        <div><div class="hist-date">🕐 ${s.date}</div><div class="hist-cnt">${s.items.length} صنف</div></div>
-        <div class="hist-total">${s.total} ج</div>
-      </div>
-      <div class="hist-items">${s.items.join('<br>')}</div>
-    </div>`).join('');
+async function doRegister() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPassword').value;
+  if (!email || !pass) return showError('loginError', '⚠️ اكتب الإيميل وكلمة المرور');
+  if (pass.length < 6) return showError('loginError', '⚠️ كلمة المرور 6 أحرف على الأقل');
+  try {
+    await auth.createUserWithEmailAndPassword(email, pass);
+  } catch (e) {
+    showError('loginError', '❌ ' + translateError(e.code));
+  }
 }
 
-function clearHistory(){ if(!confirm('حذف كل السجل؟')) return; salesHistory=[]; save(); renderHistory(); updateHeader(); toast('🗑 تم مسح السجل'); }
-
-function updateHeader() {
-  document.getElementById('hdr-p').textContent=products.length;
-  document.getElementById('hdr-s').textContent=salesHistory.length;
-  document.getElementById('hdr-r').textContent=salesHistory.reduce((s,h)=>s+parseFloat(h.total),0).toFixed(0);
+async function doLogout() {
+  await auth.signOut();
 }
 
-load(); renderInventory(); updateHeader();
+function translateError(code) {
+  const map = {
+    'auth/user-not-found': 'مفيش حساب بالإيميل ده',
+    'auth/wrong-password': 'كلمة المرور غلط',
+    'auth/invalid-email': 'الإيميل غلط',
+    'auth/email-already-in-use': 'الإيميل ده متسجل قبل كده',
+    'auth/weak-password': 'كلمة المرور ضعيفة',
+    'auth/invalid-credential': 'الإيميل أو كلمة المرور غلط',
+  };
+  return map[code] || code;
+}
+
+// ===== AUTH STATE =====
+auth.onAuthStateChanged(user => {
+  if (user) {
+    const isAdmin = user.email === ADMIN_EMAIL;
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('appScreen').style.display = 'block';
+    document.getElementById('userEmailDisplay').textContent = user.email;
+    document.getElementById('roleBadge').textContent = isAdmin ? '👑 أدمن' : '👤 مستخدم';
+    document.getElementById('roleBadge').className = 'role-badge ' + (isAdmin ? 'badge-admin' : 'badge-user');
+    document.getElementById('addFormSection').style.display = isAdmin ? 'block' : 'none';
+    loadData(isAdmin);
+  } else {
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('appScreen').style.display = 'none';
+  }
+});
+
+// ===== REALTIME DATA =====
+function loadData(isAdmin) {
+  db.ref('entries').on('value', snap => {
+    allData = snap.val() || {};
+    updateStats();
+    renderTable(isAdmin);
+  });
+}
+
+function updateStats() {
+  const entries = Object.values(allData);
+  const totalPeople = entries.reduce((s, e) => s + (e.people || 0), 0);
+  document.getElementById('statTotal').textContent = entries.length;
+  document.getElementById('statPeople').textContent = totalPeople;
+  document.getElementById('statBread').textContent = totalPeople * 5;
+  document.getElementById('statMoney').textContent = totalPeople + ' ج';
+}
+
+function renderTable(isAdmin) {
+  if (isAdmin === undefined) isAdmin = auth.currentUser?.email === ADMIN_EMAIL;
+  const search = (document.getElementById('searchInput')?.value || '').toLowerCase();
+  const entries = Object.entries(allData).filter(([k, v]) =>
+    !search || v.name?.toLowerCase().includes(search) || v.name?.includes(search)
+  );
+
+  document.getElementById('recordCount').textContent = entries.length + ' سجل';
+
+  if (entries.length === 0) {
+    document.getElementById('tableContainer').innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">📭</div>
+        <p>${search ? 'مفيش نتائج للبحث ده' : 'مفيش بيانات لحد دلوقتي'}</p>
+      </div>`;
+    return;
+  }
+
+  const rows = entries.map(([key, e]) => {
+    const bread = (e.people || 0) * 5;
+    const money = e.people || 0;
+    const adminActions = isAdmin ? `
+      <div class="actions">
+        <button class="btn btn-outline btn-sm" onclick="openEdit('${key}', '${e.name}', ${e.people})">✏️ تعديل</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteEntry('${key}')">🗑️</button>
+      </div>` : '';
+    return `
+      <tr>
+        <td class="name-cell">${e.name}</td>
+        <td><span class="num-badge num-people">👥 ${e.people}</span></td>
+        <td><span class="num-badge num-bread">🍞 ${bread}</span></td>
+        <td><span class="num-badge num-money">💰 ${money} ج</span></td>
+        ${isAdmin ? `<td>${adminActions}</td>` : ''}
+      </tr>`;
+  }).join('');
+
+  document.getElementById('tableContainer').innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>الاسم</th>
+          <th>الأشخاص</th>
+          <th>أرغفة يومية</th>
+          <th>الجنيهات</th>
+          ${isAdmin ? '<th></th>' : ''}
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+// ===== ADMIN ACTIONS =====
+async function addEntry() {
+  const name = document.getElementById('newName').value.trim();
+  const people = parseInt(document.getElementById('newPeople').value);
+
+  if (!name) return showError('addError', '⚠️ اكتب الاسم');
+  if (!people || people < 1) return showError('addError', '⚠️ اكتب عدد صحيح للأشخاص');
+
+  // Check duplicate name
+  const existing = Object.values(allData).find(e => e.name.toLowerCase() === name.toLowerCase());
+  if (existing) return showError('addError', '❌ الاسم ده موجود قبل كده');
+
+  await db.ref('entries').push({ name, people });
+  document.getElementById('newName').value = '';
+  document.getElementById('newPeople').value = '';
+}
+
+async function deleteEntry(key) {
+  if (!confirm('متأكد إنك عايز تمسح الإدخال ده؟')) return;
+  await db.ref('entries/' + key).remove();
+}
+
+function openEdit(key, name, people) {
+  document.getElementById('editKey').value = key;
+  document.getElementById('editName').value = name;
+  document.getElementById('editPeople').value = people;
+  document.getElementById('editModal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('editModal').classList.remove('open');
+}
+
+async function saveEdit() {
+  const key = document.getElementById('editKey').value;
+  const name = document.getElementById('editName').value.trim();
+  const people = parseInt(document.getElementById('editPeople').value);
+
+  if (!name) return showError('editError', '⚠️ اكتب الاسم');
+  if (!people || people < 1) return showError('editError', '⚠️ اكتب عدد صحيح');
+
+  // Check duplicate (excluding current)
+  const dup = Object.entries(allData).find(([k, e]) => k !== key && e.name.toLowerCase() === name.toLowerCase());
+  if (dup) return showError('editError', '❌ الاسم ده موجود قبل كده');
+
+  await db.ref('entries/' + key).update({ name, people });
+  closeModal();
+}
 </script>
-
 </body>
 </html>
