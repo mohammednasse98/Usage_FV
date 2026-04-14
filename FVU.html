@@ -259,12 +259,14 @@
   .stat-card.gold::before { background: var(--gold); }
   .stat-card.green::before { background: var(--green); }
   .stat-card.blue::before { background: var(--blue); }
+  .stat-card.red::before { background: var(--red); }
 
   .stat-label { font-size: 12px; color: var(--muted); font-weight: 600; margin-bottom: 8px; }
   .stat-value { font-size: 28px; font-weight: 900; }
   .stat-card.gold .stat-value { color: var(--gold); }
   .stat-card.green .stat-value { color: var(--green); }
   .stat-card.blue .stat-value { color: var(--blue); }
+  .stat-card.red .stat-value { color: var(--red); }
 
   /* ===== SEARCH ===== */
   .search-bar {
@@ -308,7 +310,7 @@
 
   .form-row {
     display: grid;
-    grid-template-columns: 1fr 1fr auto;
+    grid-template-columns: 1fr 1fr 1fr auto;
     gap: 12px;
     align-items: end;
   }
@@ -381,6 +383,9 @@
   .num-people { background: rgba(74,144,217,0.12); color: var(--blue); }
   .num-bread { background: rgba(245,200,66,0.12); color: var(--gold); }
   .num-money { background: rgba(76,187,138,0.12); color: var(--green); }
+  .num-paid { background: rgba(76,187,138,0.12); color: var(--green); }
+  .num-remaining { background: rgba(224,85,85,0.12); color: var(--red); }
+  .num-zero { background: rgba(76,187,138,0.08); color: var(--green); }
 
   .actions { display: flex; gap: 8px; justify-content: flex-end; }
 
@@ -517,6 +522,14 @@
         <div class="stat-label">💰 إجمالي الجنيهات</div>
         <div class="stat-value" id="statMoney">0</div>
       </div>
+      <div class="stat-card green">
+        <div class="stat-label">✅ إجمالي المدفوع</div>
+        <div class="stat-value" id="statPaid">0</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-label">⏳ إجمالي الباقي</div>
+        <div class="stat-value" id="statRemaining">0</div>
+      </div>
     </div>
 
     <!-- ADD FORM (admin only) -->
@@ -530,6 +543,10 @@
         <div>
           <label>عدد الأشخاص</label>
           <input type="number" id="newPeople" placeholder="مثال: 4" min="1">
+        </div>
+        <div>
+          <label>المبلغ المدفوع (ج)</label>
+          <input type="number" id="newPaid" placeholder="0" min="0">
         </div>
         <button class="btn btn-gold" onclick="addEntry()">إضافة ✓</button>
       </div>
@@ -565,6 +582,8 @@
     <input type="text" id="editName">
     <label>عدد الأشخاص</label>
     <input type="number" id="editPeople" min="1">
+    <label>المبلغ المدفوع (ج)</label>
+    <input type="number" id="editPaid" min="0">
     <div class="error-msg" id="editError"></div>
     <div class="modal-actions">
       <button class="btn btn-gold" onclick="saveEdit()">حفظ</button>
@@ -680,10 +699,15 @@ function loadData(isAdmin) {
 function updateStats() {
   const entries = Object.values(allData);
   const totalPeople = entries.reduce((s, e) => s + (e.people || 0), 0);
+  const totalPaid = entries.reduce((s, e) => s + (e.paid || 0), 0);
+  const totalMoney = totalPeople;
+  const totalRemaining = totalMoney - totalPaid;
   document.getElementById('statTotal').textContent = entries.length;
   document.getElementById('statPeople').textContent = totalPeople;
   document.getElementById('statBread').textContent = totalPeople * 5;
-  document.getElementById('statMoney').textContent = totalPeople + ' ج';
+  document.getElementById('statMoney').textContent = totalMoney + ' ج';
+  document.getElementById('statPaid').textContent = totalPaid + ' ج';
+  document.getElementById('statRemaining').textContent = totalRemaining + ' ج';
 }
 
 function renderTable(isAdmin) {
@@ -707,9 +731,13 @@ function renderTable(isAdmin) {
   const rows = entries.map(([key, e]) => {
     const bread = (e.people || 0) * 5;
     const money = e.people || 0;
+    const paid = e.paid || 0;
+    const remaining = money - paid;
+    const remClass = remaining <= 0 ? 'num-zero' : 'num-remaining';
+    const remLabel = remaining <= 0 ? '✅ مسدد' : `⏳ ${remaining} ج`;
     const adminActions = isAdmin ? `
       <div class="actions">
-        <button class="btn btn-outline btn-sm" onclick="openEdit('${key}', '${e.name}', ${e.people})">✏️ تعديل</button>
+        <button class="btn btn-outline btn-sm" onclick="openEdit('${key}', '${e.name}', ${e.people}, ${paid})">✏️ تعديل</button>
         <button class="btn btn-danger btn-sm" onclick="deleteEntry('${key}')">🗑️</button>
       </div>` : '';
     return `
@@ -718,6 +746,7 @@ function renderTable(isAdmin) {
         <td><span class="num-badge num-people">👥 ${e.people}</span></td>
         <td><span class="num-badge num-bread">🍞 ${bread}</span></td>
         <td><span class="num-badge num-money">💰 ${money} ج</span></td>
+        
         ${isAdmin ? `<td>${adminActions}</td>` : ''}
       </tr>`;
   }).join('');
@@ -729,7 +758,7 @@ function renderTable(isAdmin) {
           <th>الاسم</th>
           <th>الأشخاص</th>
           <th>أرغفة يومية</th>
-          <th>الجنيهات</th>
+          <th>المطلوب</th>
           ${isAdmin ? '<th></th>' : ''}
         </tr>
       </thead>
@@ -741,6 +770,7 @@ function renderTable(isAdmin) {
 async function addEntry() {
   const name = document.getElementById('newName').value.trim();
   const people = parseInt(document.getElementById('newPeople').value);
+  const paid = parseFloat(document.getElementById('newPaid').value) || 0;
 
   if (!name) return showError('addError', '⚠️ اكتب الاسم');
   if (!people || people < 1) return showError('addError', '⚠️ اكتب عدد صحيح للأشخاص');
@@ -749,9 +779,10 @@ async function addEntry() {
   const existing = Object.values(allData).find(e => e.name.toLowerCase() === name.toLowerCase());
   if (existing) return showError('addError', '❌ الاسم ده موجود قبل كده');
 
-  await db.ref('entries').push({ name, people });
+  await db.ref('entries').push({ name, people, paid });
   document.getElementById('newName').value = '';
   document.getElementById('newPeople').value = '';
+  document.getElementById('newPaid').value = '';
 }
 
 async function deleteEntry(key) {
@@ -759,10 +790,11 @@ async function deleteEntry(key) {
   await db.ref('entries/' + key).remove();
 }
 
-function openEdit(key, name, people) {
+function openEdit(key, name, people, paid) {
   document.getElementById('editKey').value = key;
   document.getElementById('editName').value = name;
   document.getElementById('editPeople').value = people;
+  document.getElementById('editPaid').value = paid || 0;
   document.getElementById('editModal').classList.add('open');
 }
 
@@ -774,6 +806,7 @@ async function saveEdit() {
   const key = document.getElementById('editKey').value;
   const name = document.getElementById('editName').value.trim();
   const people = parseInt(document.getElementById('editPeople').value);
+  const paid = parseFloat(document.getElementById('editPaid').value) || 0;
 
   if (!name) return showError('editError', '⚠️ اكتب الاسم');
   if (!people || people < 1) return showError('editError', '⚠️ اكتب عدد صحيح');
@@ -782,7 +815,7 @@ async function saveEdit() {
   const dup = Object.entries(allData).find(([k, e]) => k !== key && e.name.toLowerCase() === name.toLowerCase());
   if (dup) return showError('editError', '❌ الاسم ده موجود قبل كده');
 
-  await db.ref('entries/' + key).update({ name, people });
+  await db.ref('entries/' + key).update({ name, people, paid });
   closeModal();
 }
 </script>
